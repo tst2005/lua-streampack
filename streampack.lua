@@ -10,8 +10,6 @@ local function getsegment_from(data, pos, marklen)
 	return string.sub(data, (pos or 1)+marklen, b-1), e
 end
 
-
-
 local function decode(data, marklen, out)
 	marklen = marklen or 1
 	out = out or {}
@@ -26,14 +24,11 @@ local function decode(data, marklen, out)
 	return out, pos
 end
 
-for _, data in ipairs{"AbbABcccB", "AbbABcccBCC"} do
-	local t,pos = decode( data )
-	print(require"mini.tprint.better"(t,{inline=false}))
+local function encode()
+
 end
-for _, data in ipairs{"AAbbAABBcccBB", "AbbAbBcccBcCxx"} do
-	local t,pos = decode( data, 2 )
-	if pos<#data then
-		t.trailing = data:sub(pos,-1)
-	end
-	print(require"mini.tprint.better"(t,{inline=false}))
-end
+
+return {
+	decode = decode,
+	encode = encode,
+}
