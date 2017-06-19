@@ -2,6 +2,9 @@
 pcall(require,"rand")
 
 local function decode(data, marklen, out)
+	if type(data) ~= "string" then
+		data = tostring(data)
+	end
 	marklen = marklen or 1
 	out = out or {}
 	local function getsegment_from(data, pos, marklen)
@@ -21,6 +24,7 @@ local function decode(data, marklen, out)
 		table.insert(out, segment)
 		pos=pos+1
 	end
+	setmetatable(out, {__tostring=function(self) return table.concat(self,"") end})
 	return out, pos
 end
 
@@ -49,7 +53,7 @@ local function newmark1_for_segment(alphabet, no_char)
 --print("n:",n) 
 	return alphabet:sub(n,n), b
 end
-
+--[[
 local function newmark_for_segment(alphabet, nomark, marklen)
 	local collision = true
 	local mark = ""
@@ -63,7 +67,8 @@ local function newmark_for_segment(alphabet, nomark, marklen)
 	end
 	return not collision, mark
 end
-
+]]--
+--[[
 local function newmark_for_segment(alphabet, nomark, marklen)
 	local mark = ""
 	local c,b
@@ -74,48 +79,52 @@ local function newmark_for_segment(alphabet, nomark, marklen)
 	assert(#mark==marklen, "wrong size for mark, expected "..marklen.." got "..#mark)
 	return not (mark==nomark), mark, b
 end
+]]--
 
-local function table_inserts(t, a, ...)
-	table.insert(t, a)
-	if ... then
-		return table_inserts(t, ...)
+local function newmark_rand(alphabet, marklen)
+	local mark = ""
+	local n
+	local rand = math.random
+	for i=1,assert(marklen) do
+		n = rand(1,#alphabet)
+		mark = mark .. alphabet:sub(n,n)
 	end
-	return t
+	return mark
 end
 
 
-local function newmark_rand(alphabet)
-	local n = math.random(1,#alphabet)
-	return alphabet:sub(n,n)
-end
-
-
-local function encode(data, alphabet, marklen)
+local function encode(data, marklen, alphabet, debug)
+	assert(marklen, "missing marklen")
 	local r = {}
 	local pos = 1
+	local table_insert = table.insert
 	while true do
 		-- begin of segment is the forbidden mark value
 		local nomark = data:sub(pos,pos+marklen-1)
 
 		-- get a new random mark
-		local mark = newmark_rand(alphabet, marklen)
-		print("mark=", mark, "nomark=", nomark)
-		assert(#mark == marklen)
-		assert(not(mark==nomark), "the mark is the forbidden one")
-
+		local mark
+		for try=1,100 do
+			mark = newmark_rand(alphabet, marklen)
+--print("mark=", mark, "nomark=", nomark)
+			if mark~=nomark then break end
+		end
+		assert(#mark == marklen, "internal error, the generated mark does not fit the expected size")
+		assert(not(mark==nomark), "unable to get a appropriate mark")
 		-- find the mark on data segment
 		local b = mark.find(data, mark, pos, true)
 
 		--for debug:
-		mark=mark:upper()
-		table_inserts(r, mark, data:sub(pos,not b and -1 or (b-1)), mark)
+		if debug then mark = debug(mark) end
+
+		table_insert(r, mark)
+		table_insert(r, data:sub(pos,not b and -1 or (b-1)) )
+		table_insert(r, mark)
 		pos=b
 		if not pos then break end
 	end
-	return table.concat(r,"")
-end
-do
-	print(encode("abcdeabcde", "abcde", 1))
+	setmetatable(r,{__tostring=function(self) return table.concat(self,"") end})
+	return r
 end
 
 return {
