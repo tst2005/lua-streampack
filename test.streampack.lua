@@ -22,12 +22,27 @@ end
 local alphabet = "abcde"
 local w = "abcdeabcde"
 
-for marklen = 1,3 do
+
+for marklen = 3,3 do
 	local x = encode(w, marklen, alphabet)
 	local y = decode(x, marklen)
 	--print(x)
-	--for k,v in pairs(y) do print(k,v)end
 
-	assert(tostring(y) == w)
+	if tostring(y) ~= w then
+		print("--------")
+		print("try to encode", w)
+		print("---- encoded: ----")
+		print(x)
+		print("----")
+		for i,v in ipairs(y) do
+			print(i,v, "mark=", y.marks[i])
+		end
+		print("trailing:", y.trailing or "NO")
+		print("y", tostring(y))
+		print("w", w)
+		print("---- ERROR ----")
+		os.exit(1)
+	end
+	--assert(tostring(y) == w)
 end
-print("OK")
+--print("OK")
