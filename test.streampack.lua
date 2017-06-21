@@ -22,8 +22,8 @@ end
 local alphabet = "abcde"
 local w = "abcdeabcde"
 
-
-for marklen = 3,3 do
+local marklen = 3
+for _loop = 1,1000000 do
 	local x = encode(w, marklen, alphabet)
 	local y = decode(x, marklen)
 	--print(x)

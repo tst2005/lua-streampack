@@ -35,58 +35,6 @@ end
 
 
 
--- 123456789
--- ABCDEFHGI
---  12345678
--- !D  <=> !4
--- 3
-
--- 123_56789
--- 4 => 9 ?
---[[
-local function newmark1_for_segment(alphabet, no_char)
-	local b = no_char and no_char.find(alphabet, no_char, nil, true) -- support no_char to be a special utf8 object with utf8 find method...
-	local setlen = #alphabet
-	if b then
-		setlen = setlen -1
-	end
-	local n = math.random(1,setlen)
---print("rand[1.."..setlen.."]", n)
-	if b and n >= b then
-		n = n+1
-	end
---print("n:",n) 
-	return alphabet:sub(n,n), b
-end
-]]--
---[[
-local function newmark_for_segment(alphabet, nomark, marklen)
-	local collision = true
-	local mark = ""
-	for i=1,marklen do
-		local no_char = nomark:sub(i,i)
-		local c,b = newmark1_for_segment(alphabet, no_char)
-		if c and (not b or c ~= no_char) then
-			collision = false
-		end
-		mark = mark..(c or "")
-	end
-	return not collision, mark
-end
-]]--
---[[
-local function newmark_for_segment(alphabet, nomark, marklen)
-	local mark = ""
-	local c,b
-	for i=1,marklen do
-		c,b = newmark1_for_segment(alphabet, nil)
-		mark = mark..(c or "")
-	end
-	assert(#mark==marklen, "wrong size for mark, expected "..marklen.." got "..#mark)
-	return not (mark==nomark), mark, b
-end
-]]--
-
 -- simple random mark
 local function newmark_rand(alphabet, marklen)
 	local mark = ""
@@ -99,18 +47,13 @@ local function newmark_rand(alphabet, marklen)
 	return mark
 end
 local function safe_newmark_rand(alphabet, marklen, nomark)
-	local nochar = nomark:sub(1,1)
-	local safealphabet
-	if #nochar < 1 then
-		safealphabet = alphabet
-	else
-		safealphabet = alphabet:gsub(".", function(c) return (c == nochar) and "" or c end)
-
-		if not(#safealphabet > 0 and (#safealphabet == #alphabet-1)) then
-			print("safealphabet=", safealphabet, "alphabet", alphabet, "nomark=", nomark, "nochar=", nochar)
-		end
-		assert(#safealphabet > 0 and (#safealphabet == #alphabet-1))
+	if not nomark or #nomark < 1 then
+		return newmark_rand(alphabet, marklen)
 	end
+	local nochar = nomark:sub(1,1)
+	local safealphabet = alphabet:gsub(".", function(c) return (c == nochar) and "" or c end)
+	if not(#safealphabet > 0 and (#safealphabet == #alphabet-1)) then print("safealphabet=", safealphabet, "alphabet", alphabet, "nomark=", nomark, "nochar=", nochar) end
+	assert(#safealphabet > 0 and (#safealphabet == #alphabet-1))
 	return newmark_rand(safealphabet, 1)..newmark_rand(alphabet, marklen-1)
 end
 
@@ -126,31 +69,47 @@ local function encode(data, marklen, alphabet, debug)
 
 		-- get a new random mark
 		local mark
-		for try=1,100 do
+--		for try=1,10 do
 			mark = safe_newmark_rand(alphabet, marklen, nomark)
 --print("mark=", mark, "nomark=", nomark)
-			if mark~=nomark then break end
-			if try > 1 then
-				print("safe fail")
-			end
-		end
+--			if mark~=nomark then break end
+--			if try > 1 then
+--				print("safe fail")
+--			end
+--		end
 		assert(#mark == marklen, "internal error, the generated mark does not fit the expected size")
 		assert(not(mark==nomark), "unable to get a appropriate mark")
-		-- find the mark on data segment
+		-- simple find the mark on data segment
 		local b = mark.find(data, mark, pos, true)
-		if not b and marklen >= 2 then -- need to check a possible bug when one or more ending data become the beginning of the mark
---			print("BUG detect...")
-			-- data = "abcde" -- mark = "ee"
+
+		-- if the simple find didn't match, try harder
+		-- there exists some issue with marklen >1
+		if not b and marklen >= 2 then
+			-- the issue only happens at the end of the data
+			-- when the begining of the mark and the end of data are the same
+			-- data = "abcde" with mark = "ee"
 			-- detect bug of "ee".."abcde".."ee" => decode will cut mark "abcd" mark "e"
-			local partial = data:sub(-marklen,-1) -- get the last marklen-th chars of data
-			assert(#partial == marklen and #data > marklen)
---print("partial=", partial, "mark=", mark)
-			local b2 = (partial..mark):find(mark, nil, true)
-			assert(b2) -- should always match
-			if b2 <= marklen then -- the beginning of mark is inside the data not at the expected position
-				b = #data -marklen +b2 -1
-				--print("BUG FIXED from ", b, " to ", -marklen+b2-1)
-				--b = -marklen+b2-1
+			local data2 = data..mark
+			local b2 = mark.find(data2, mark, pos, true)
+			assert(b2)
+			if b2 <= #data then -- bug detected, the mark will be decoded into the data
+--print("bug detected and fixed")
+				b = b2
+
+				-- extract the reminding data part...
+				local partial = data:sub(pos, -1):sub(-marklen,-1) -- get the last marklen-th chars of data
+				local b2 = (partial..mark):find(mark, nil, true)
+				assert(b2) -- should always match
+				if b2 <= marklen then -- the beginning of mark is inside the data not at the expected position
+					local b3 = #data -#partial +b2
+					if b ~= b3 then
+						print("fix1", b, "fix2", b3)
+						print("data=", data)
+						print("mark=", mark)
+						print("partial=", partial)
+						print("b2", b2)
+					end
+				end
 			end
 		end
 
