@@ -1,3 +1,4 @@
+#!/usr/bin/env lua
 
 local len = function(x) return #x end
 
