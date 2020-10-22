@@ -1,0 +1,19 @@
+A							-- [bootstrap step]
+	BB						-- [bootstrap step]
+A							-- [bootstrap step]
+		CCCC					-- [bootstrap step]
+	BB						-- [bootstrap step]
+			DDDD				-- [bootstrap step] MARK1 found
+		CCCC					-- [bootstrap step]
+-- ------------------------------------------------------- [context]
+				H1.1	H1.2	H1.1	-- [context] (
+						CLOSE	-- [context] 1st entry
+					H1.2		-- [context] )
+				H2.1	H2.2	H2.1	-- [context] (
+						NEXT	-- [context] 2nd entry	
+					H2.2		-- [context] )
+				H3.1	H3.2	H3.1	-- [context] (
+						SUB	-- [context] 3rd entry
+					H3.2		-- [context] )
+-- ------------------------------------------------------- [context]
+			DDDD				-- [context] end of context, MARK1 reached.

@@ -6,7 +6,8 @@ local read, read_until
 do
 	local str2fd = require "str2fd"
 
-	local _data_ = io.stdin:read("*a"):gsub("%s+","")
+	local _data_ = io.stdin:read("*a"):gsub("(.-)%-%-[^\n]-\n","%1\n") :gsub("%s+","")
+--	print(_data_)
 	local fd = str2fd(_data_)
 
 
@@ -15,12 +16,12 @@ do
 	end
 
 	function read_until(value)
-print(fd:seek(), value, fd:dump())
+print("", "debug:", fd:seek(), value, fd:dump())
 		return fd:read_until(value)
 	end
 end
 
-local mark=read(1)
+local mark1=read(1)
 local value=''
 
 local function getthenewmark(lastmark)
@@ -35,37 +36,32 @@ local function getthenewmark(lastmark)
 	end
 	return lastmark
 end
+local function getthenewmark_simple(lastmark)
+	return read(len(lastmark))
+end
 
-mark = getthenewmark(mark)
+mark1 = getthenewmark(mark1)
+-----------------------------
+print("ENJOY mark1 found is", mark1)
+-- ENJOY, we have the mark1 !
+-----------------------------
 
-print("ENJOY mark found is", mark)
--- ENJOY, we have the mark !
-----------------------------
-
-
-local v1 = read_until(mark)
-print("ENJOY value is", v1)
-
---local function getthenewmark(lastmark)
---	return read(len(lastmark))
---end
-local newmark = getthenewmark
-
-----------------------------
-
---[[
+--local v1 = read_until(mark)
+--print("ENJOY value is", v1)
 
 local context = {}
 
-local CLOSE = read_until(mark, context)
-context[1]=CLOSE
-mark = newmark(mark)
+local mark
 
-local NEXT = read_until(mark, context)
-context[2]=NEXT
-mark = newmark(mark)
+while true do
+	mark = getthenewmark_simple(mark1)
+	if mark == mark1 then
+		print("mark1 found, stop context")
+		break
+	end
+	mark = read_until(mark)
+	context[#context+1]=read_until(mark, context)
+	print("context size:", #context)
+end
 
-local SUB = read_until(mark, context)
-context[3]=SUB
-mark = newmark(mark)
-]]--
+print("context:", table.concat(context, " ; "))
