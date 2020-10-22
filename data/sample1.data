@@ -3,7 +3,7 @@ A							-- [bootstrap step]
 A							-- [bootstrap step]
 		CCCC					-- [bootstrap step]
 	BB						-- [bootstrap step]
-			DDDD				-- [bootstrap step] MARK1 found
+			DDDD				-- [bootstrap step] the MARK1 value
 		CCCC					-- [bootstrap step]
 -- ------------------------------------------------------- [context]
 				H1.1	H1.2	H1.1	-- [context] (
